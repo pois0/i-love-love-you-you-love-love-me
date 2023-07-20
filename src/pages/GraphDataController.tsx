@@ -5,9 +5,9 @@ import Graph from "graphology";
 import React, { useEffect } from "react";
 import { animateNodes } from "sigma/utils/animate";
 
-import { DataSet } from "./types";
+import { Anime, DataSet, UserMap } from "./types";
 
-export const GraphDataController: React.FC<{ dataset: DataSet }> = ({ dataset }) => {
+export const GraphDataController: React.FC<{ userMap: UserMap }> = ({ userMap }) => {
   const sigma = useSigma();
   const loadGraph = useLoadGraph();
   const layoutCircular = useLayoutForceAtlas2({
@@ -15,7 +15,8 @@ export const GraphDataController: React.FC<{ dataset: DataSet }> = ({ dataset })
   });
 
   useEffect(() => {
-    if (!dataset) return;
+    if (!userMap) return;
+    const dataset = aggregate(userMap);
 
     const g = new Graph();
 
@@ -33,12 +34,12 @@ export const GraphDataController: React.FC<{ dataset: DataSet }> = ({ dataset })
       ])
       .mode("hsl")
       .colors(dataset.users.length);
-    dataset.users.forEach(({ id, name, size }, i) => {
-      g.addNode(id, {
+    dataset.users.forEach(({ name, id }, i) => {
+      g.addNode(-id, {
         label: name,
         x: Math.random(),
         y: Math.random(),
-        size: 15 + (20 * ((size / dataset.animes.length) ** 0.5)),
+        size: 25,
         color: usercolors[i],
       });
     });
@@ -52,9 +53,9 @@ export const GraphDataController: React.FC<{ dataset: DataSet }> = ({ dataset })
       });
     });
     dataset.statuses.forEach(({ animeId, userId, status }) => {
-      g.addEdge(userId, animeId, {
+      g.addEdge(-userId, animeId, {
         label: status,
-        size: status === "WATCHED" ? 1 : 2,
+        size: status === "COMPLETED" ? 1 : 2,
       });
     });
     loadGraph(g);
@@ -64,3 +65,32 @@ export const GraphDataController: React.FC<{ dataset: DataSet }> = ({ dataset })
 
   return null;
 };
+
+function aggregate(userMap: UserMap): DataSet {
+  const users = Object.values(userMap).map((it) => it.user);
+  const animes = new Map<number, Anime>();
+  const statuses = Object.values(userMap).flatMap(({ user, lists }) =>{
+    return lists.flatMap((group) => {
+      const status = group.status;
+      if (!status) return [];
+      if (status !== "CURRENT" && status !== "COMPLETED") return [];
+
+      return group.entries.map(({ media }) => {
+        const anime = animes.get(media.id)
+        if (anime) {
+          anime.size++;
+        } else {
+          animes.set(media.id, { id: media.id, title: media.title.native, size: 1 });
+        }
+        return {
+          userId: user.id,
+          animeId: media.id,
+          status
+        };
+      });
+    });
+  });
+
+  return { users, animes: Array.from(animes.values()), statuses };
+}
+
