@@ -10,7 +10,7 @@ https://pois0.github.io/i-love-love-you-you-love-love-me/?users=pois0,sno2wman
 
 ### Params
 
-- `anilist`
+- `users`
   - ex: https://anilist.co/user/sno2wman, then `sno2wman`
 
 ## Name
