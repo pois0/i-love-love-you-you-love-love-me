@@ -3,21 +3,18 @@ import { useLayoutForceAtlas2 } from "@react-sigma/layout-forceatlas2";
 import chroma from "chroma-js";
 import Graph from "graphology";
 import React, { useEffect } from "react";
-import { animateNodes } from "sigma/utils/animate";
 
-import { Anime, DataSet, UserMap } from "./types";
+import { animeNodeId, userNodeId } from "./logic/graphUtils";
+import { DataSet } from "./types";
 
-export const GraphDataController: React.FC<{ userMap: UserMap }> = ({ userMap }) => {
-  const sigma = useSigma();
+export const GraphDataController: React.FC<{ dataset: DataSet }> = ({ dataset }) => {
+  useSigma();
   const loadGraph = useLoadGraph();
-  const layoutCircular = useLayoutForceAtlas2({
-    iterations: 1000,
+  const { assign } = useLayoutForceAtlas2({
+    iterations: 300,
   });
 
   useEffect(() => {
-    if (!userMap) return;
-    const dataset = aggregate(userMap);
-
     const g = new Graph();
 
     const usercolors = chroma
@@ -35,7 +32,8 @@ export const GraphDataController: React.FC<{ userMap: UserMap }> = ({ userMap })
       .mode("hsl")
       .colors(dataset.users.length);
     dataset.users.forEach(({ name, id }, i) => {
-      g.addNode(-id, {
+      g.addNode(userNodeId(id), {
+        nodeType: "User",
         label: name,
         x: Math.random(),
         y: Math.random(),
@@ -44,7 +42,8 @@ export const GraphDataController: React.FC<{ userMap: UserMap }> = ({ userMap })
       });
     });
     dataset.animes.forEach(({ id, title, size }) => {
-      g.addNode(id, {
+      g.addNode(animeNodeId(id), {
+        nodeType: "Anime",
         label: title,
         x: Math.random(),
         y: Math.random(),
@@ -53,44 +52,15 @@ export const GraphDataController: React.FC<{ userMap: UserMap }> = ({ userMap })
       });
     });
     dataset.statuses.forEach(({ animeId, userId, status }) => {
-      g.addEdge(-userId, animeId, {
+      g.addEdge(userNodeId(userId), animeNodeId(animeId), {
         label: status,
         size: status === "COMPLETED" ? 1 : 2,
       });
     });
     loadGraph(g);
-
-    animateNodes(sigma.getGraph(), layoutCircular.positions(), { duration: 5000 });
-  }, [sigma]);
+    assign();
+  }, [assign, loadGraph, dataset]);
 
   return null;
 };
-
-function aggregate(userMap: UserMap): DataSet {
-  const users = Object.values(userMap).map((it) => it.user);
-  const animes = new Map<number, Anime>();
-  const statuses = Object.values(userMap).flatMap(({ user, lists }) =>{
-    return lists.flatMap((group) => {
-      const status = group.status;
-      if (!status) return [];
-      if (status !== "CURRENT" && status !== "COMPLETED") return [];
-
-      return group.entries.map(({ media }) => {
-        const anime = animes.get(media.id)
-        if (anime) {
-          anime.size++;
-        } else {
-          animes.set(media.id, { id: media.id, title: media.title.native, size: 1 });
-        }
-        return {
-          userId: user.id,
-          animeId: media.id,
-          status
-        };
-      });
-    });
-  });
-
-  return { users, animes: Array.from(animes.values()), statuses };
-}
 

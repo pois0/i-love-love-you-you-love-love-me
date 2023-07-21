@@ -1,15 +1,16 @@
-import { ControlsContainer, FullScreenControl, SigmaContainer, ZoomControl } from "@react-sigma/core";
+import { ControlsContainer, FullScreenControl, SearchControl, SigmaContainer, ZoomControl } from "@react-sigma/core";
 import clsx from "clsx";
-import { gql, GraphQLClient } from "graphql-request";
+import { GraphQLClient } from "graphql-request";
 import React, { Suspense, useMemo, useState } from "react";
 import useSWR from "swr";
 
 import { useURLParams } from "~/hooks/useURLParams";
+import { AnimeSearchControl } from "./AnimeSearchControl";
 
 import { GraphDataController } from "./GraphDataController";
 import { GraphEventsController } from "./GraphEventsController";
 import { GraphSettingsController } from "./GraphSettingsController";
-import { UserMap } from "./types";
+import { Anime, DataSet, UserMap } from "./types";
 
 const anilistClient = new GraphQLClient(
   "https://graphql.anilist.co",
@@ -53,9 +54,9 @@ export const Fetcher: React.FC<
     userList: string[];
   }
 > = ({ userList, style, className }) => {
-  const { data } = useSWR<UserMap>(
+  const { data } = useSWR<DataSet>(
     [userList],
-    (l) => anilistClient.request(makeQuery(l)),
+    (l: string[]) => anilistClient.request<UserMap>(makeQuery(l)).then(aggregate),
     {
       suspense: true,
       revalidateOnFocus: false,
@@ -73,15 +74,17 @@ export const Fetcher: React.FC<
         <GraphSettingsController hoveredNode={hoveredNode} />
         <GraphEventsController setHoveredNode={(node) => setHoveredNode(node)} />
         <GraphDataController
-          userMap={
+          dataset={
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             data!
           }
         />
-
         <ControlsContainer position={"bottom-right"}>
           <ZoomControl />
           <FullScreenControl />
+        </ControlsContainer>
+        <ControlsContainer position={"top-right"}>
+          <AnimeSearchControl />
         </ControlsContainer>
       </SigmaContainer>
     </div>
@@ -124,3 +127,31 @@ export const Page: React.FC = () => {
     </div>
   );
 };
+
+function aggregate(userMap: UserMap): DataSet {
+  const users = Object.values(userMap).map((it) => it.user);
+  const animes = new Map<number, Anime>();
+  const statuses = Object.values(userMap).flatMap(({ user, lists }) =>{
+    return lists.flatMap((group) => {
+      const status = group.status;
+      if (!status) return [];
+      if (status !== "CURRENT" && status !== "COMPLETED") return [];
+
+      return group.entries.map(({ media }) => {
+        const anime = animes.get(media.id)
+        if (anime) {
+          anime.size++;
+        } else {
+          animes.set(media.id, { id: media.id, title: media.title.native, size: 1 });
+        }
+        return {
+          userId: user.id,
+          animeId: media.id,
+          status
+        };
+      });
+    });
+  });
+
+  return { users, animes: Array.from(animes.values()), statuses };
+}
