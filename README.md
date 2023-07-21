@@ -2,16 +2,14 @@
 
 ## Usage
 
-[Example](https://i-love-love-you-you-love-love-me.vercel.app/?annict=tosuke,rinsuki&anilist=sno2wman)
+[Example](https://pois0.github.io/i-love-love-you-you-love-love-me/?users=pois0,sno2wman)
 
 ```
-https://i-love-love-you-you-love-love-me.vercel.app/?annict=tosuke,rinsuki&anilist=sno2wman
+https://pois0.github.io/i-love-love-you-you-love-love-me/?users=pois0,sno2wman
 ```
 
 ### Params
 
-- `annict`
-  - ex: if https://annict.com/@rinsuki, then `rinsuki` (omit `@`)
 - `anilist`
   - ex: https://anilist.co/user/sno2wman, then `sno2wman`
 
