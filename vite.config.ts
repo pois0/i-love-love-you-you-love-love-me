@@ -10,4 +10,5 @@ export default defineConfig({
     pluginTSconfigPaths(),
     pluginRewriteAll(),
   ],
+  base: "/i-love-love-you-you-love-love-me/"
 });
