@@ -5,9 +5,9 @@ import Graph from "graphology";
 import React, { useEffect } from "react";
 
 import { animeNodeId, userNodeId } from "./logic/graphUtils";
-import { DataSet } from "./types";
+import { DataSet, DrawMode } from "./types";
 
-export const GraphDataController: React.FC<{ dataset: DataSet }> = ({ dataset }) => {
+export const GraphDataController: React.FC<{ dataset: DataSet, mode: DrawMode}> = ({ dataset, mode }) => {
   useSigma();
   const loadGraph = useLoadGraph();
   const { assign } = useLayoutForceAtlas2({
@@ -16,18 +16,12 @@ export const GraphDataController: React.FC<{ dataset: DataSet }> = ({ dataset })
 
   useEffect(() => {
     const g = new Graph();
+    const drawing = (mode == "COUNT" ? CountMode : ScoreMode)(dataset.users.length);
 
     const usercolors = chroma
       .scale([
         chroma(326, 0.42, 0.62, "hsl"),
         chroma(426, 0.42, 0.62, "hsl"),
-      ])
-      .mode("hsl")
-      .colors(dataset.users.length);
-    const animecolors = chroma
-      .scale([
-        chroma(206, 0.45, 0.40, "hsl"),
-        chroma(226, 0.60, 0.75, "hsl"),
       ])
       .mode("hsl")
       .colors(dataset.users.length);
@@ -41,14 +35,15 @@ export const GraphDataController: React.FC<{ dataset: DataSet }> = ({ dataset })
         color: usercolors[i],
       });
     });
-    dataset.animes.forEach(({ id, title, size }) => {
+    dataset.animes.forEach(({ id, title, scores }) => {
+      const info = drawing(scores);
       g.addNode(animeNodeId(id), {
         nodeType: "Anime",
         label: title,
         x: Math.random(),
         y: Math.random(),
-        size: 5 + (40 * ((size / dataset.users.length) ** 3)),
-        color: animecolors[size - 1],
+        size: info.radius,
+        color: info.color,
       });
     });
     dataset.statuses.forEach(({ animeId, userId, status }) => {
@@ -59,8 +54,46 @@ export const GraphDataController: React.FC<{ dataset: DataSet }> = ({ dataset })
     });
     loadGraph(g);
     assign();
-  }, [assign, loadGraph, dataset]);
+  }, [assign, loadGraph, dataset, mode]);
 
   return null;
 };
 
+type NodeDrawingConfig = (scores: number[]) => { color: string, radius: number };
+
+function CountMode(userLen: number): NodeDrawingConfig {
+    const animeColors = chroma
+      .scale([
+        chroma(206, 0.45, 0.40, "hsl"),
+        chroma(226, 0.60, 0.75, "hsl"),
+      ])
+      .mode("hsl")
+      .colors(userLen);
+
+    return (scores) => ({
+      color: animeColors[scores.length - 1],
+      radius: 5 + 40 * ((scores.length / userLen) ** 3),
+    });
+}
+
+function ScoreMode(userLen: number): NodeDrawingConfig {
+  function cutScores(score: number): number {
+    return Math.min(Math.max(score, -2), 2)
+  }
+
+  return (scores) => {
+    const rawAvg = scores.reduce((acc, val) => acc + cutScores(val), 0) / scores.length;
+    const stdScore = rawAvg / 4 + 0.5;
+
+    return {
+      color: colors(stdScore).name(),
+      radius: 5 + 40 * ((scores.length / userLen) ** 3),
+    }
+  };
+}
+
+const colors = chroma
+    .scale([
+      chroma("#dd3e54"),
+      chroma("#6be585"),
+    ]);

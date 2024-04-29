@@ -7,10 +7,10 @@ import useSWR from "swr";
 import { useURLParams } from "~/hooks/useURLParams";
 import { AnimeSearchControl } from "./AnimeSearchControl";
 
-import { GraphDataController } from "./GraphDataController";
+import { GraphDataController} from "./GraphDataController";
 import { GraphEventsController } from "./GraphEventsController";
 import { GraphSettingsController } from "./GraphSettingsController";
-import { Anime, DataSet, UserMap } from "./types";
+import { Anime, DataSet, DrawMode, Status, UserMap, UserStat } from "./types";
 
 const anilistClient = new GraphQLClient(
   "https://graphql.anilist.co",
@@ -29,10 +29,17 @@ function makeQuery(userList: string[]): string {
       user {
         name
         id
+        statistics {
+          anime {
+            meanScore
+            standardDeviation
+          }
+        }
       }
       lists {
         status
         entries {
+          score
           media {
             id
             title {
@@ -52,8 +59,9 @@ export const Fetcher: React.FC<
     style?: React.CSSProperties;
     className?: string;
     userList: string[];
+    mode: DrawMode;
   }
-> = ({ userList, style, className }) => {
+> = ({ userList, style, className, mode }) => {
   const { data } = useSWR<DataSet>(
     [userList],
     (l: string[]) => anilistClient.request<UserMap>(makeQuery(l)).then(aggregate),
@@ -78,6 +86,7 @@ export const Fetcher: React.FC<
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             data!
           }
+          mode={mode}
         />
         <ControlsContainer position={"bottom-right"}>
           <ZoomControl />
@@ -93,6 +102,7 @@ export const Fetcher: React.FC<
 
 export const Page: React.FC = () => {
   const rawUsers = useURLParams("users");
+  const mode: DrawMode = (useURLParams("mode") ?? "COUNT") as DrawMode;
 
   const users = useMemo(() => rawUsers?.split(",") || [], [rawUsers]);
 
@@ -107,7 +117,7 @@ export const Page: React.FC = () => {
       <a
         target="_blank"
         rel="noreferrer"
-        href="https://github.com/SnO2WMaN/i-love-love-you-you-love-love-me"
+        href="https://github.com/pois0/i-love-love-you-you-love-love-me"
         className={clsx(
           ["absolute", ["left-2", "bottom-2"], ["z-50"]],
           ["px-4", "py-2"],
@@ -122,6 +132,7 @@ export const Page: React.FC = () => {
         <Fetcher
           style={{ width: "100%", height: "100%" }}
           userList={users}
+          mode={mode}
         />
       </Suspense>
     </div>
@@ -134,24 +145,32 @@ function aggregate(userMap: UserMap): DataSet {
   const statuses = Object.values(userMap).flatMap(({ user, lists }) =>{
     return lists.flatMap((group) => {
       const status = group.status;
+      const userStat = user.statistics.anime;
       if (!status) return [];
       if (status !== "CURRENT" && status !== "COMPLETED") return [];
 
-      return group.entries.map(({ media }) => {
-        const anime = animes.get(media.id)
+      return group.entries.map(({ media, score: rawScore }) => {
+        const score = rawScore == 0 ? 0 : zScore(userStat, rawScore * 10);
+
+        const anime = animes.get(media.id);
         if (anime) {
-          anime.size++;
+          anime.scores.push(score);
         } else {
-          animes.set(media.id, { id: media.id, title: media.title.native, size: 1 });
+          animes.set(media.id, { id: media.id, title: media.title.native, scores: [score] });
         }
         return {
           userId: user.id,
           animeId: media.id,
-          status
+          status,
+          score,
         };
       });
     });
   });
 
   return { users, animes: Array.from(animes.values()), statuses };
+}
+
+function zScore(userStat: UserStat, score: number): number {
+  return (score - userStat.meanScore) / userStat.standardDeviation;
 }

@@ -5,7 +5,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "patch-package"
   },
   "engines": {
     "node": "^20"
