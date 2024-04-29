@@ -12,6 +12,8 @@ https://pois0.github.io/i-love-love-you-you-love-love-me/?users=pois0,sno2wman
 
 - `users`
   - ex: https://anilist.co/user/sno2wman, then `sno2wman`
+- `mode`
+  - value: `COUNT` (default), `SCORE`
 
 ## Name
 
