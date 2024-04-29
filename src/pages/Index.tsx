@@ -39,7 +39,7 @@ function makeQuery(userList: string[]): string {
       lists {
         status
         entries {
-          score
+          score(format: POINT_100)
           media {
             id
             title {
@@ -150,7 +150,7 @@ function aggregate(userMap: UserMap): DataSet {
       if (status !== "CURRENT" && status !== "COMPLETED") return [];
 
       return group.entries.map(({ media, score: rawScore }) => {
-        const score = rawScore == 0 ? null : zScore(userStat, rawScore * 10);
+        const score = rawScore == 0 ? null : zScore(userStat, rawScore);
 
         const anime = animes.get(media.id);
         if (anime) {
