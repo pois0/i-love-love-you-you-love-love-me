@@ -5,7 +5,7 @@ import Graph from "graphology";
 import React, { useEffect } from "react";
 
 import { animeNodeId, userNodeId } from "./logic/graphUtils";
-import { DataSet, DrawMode } from "./types";
+import { DataSet, DrawMode, Optional } from "./types";
 
 export const GraphDataController: React.FC<{ dataset: DataSet, mode: DrawMode}> = ({ dataset, mode }) => {
   useSigma();
@@ -59,7 +59,7 @@ export const GraphDataController: React.FC<{ dataset: DataSet, mode: DrawMode}> 
   return null;
 };
 
-type NodeDrawingConfig = (scores: number[]) => { color: string, radius: number };
+type NodeDrawingConfig = (scores: Optional<number>[]) => { color: string, radius: number };
 
 function CountMode(userLen: number): NodeDrawingConfig {
     const animeColors = chroma
@@ -82,8 +82,22 @@ function ScoreMode(userLen: number): NodeDrawingConfig {
   }
 
   return (scores) => {
-    const rawAvg = scores.reduce((acc, val) => acc + cutScores(val), 0) / scores.length;
-    const stdScore = rawAvg / 4 + 0.5;
+    let sum = 0;
+    let count = 0;
+    for (const score of scores) {
+      if (score == null) continue;
+      count++;
+      sum += cutScores(score);
+    }
+
+    if (count === 0) {
+      return {
+        color: "#768894",
+        radius: 5 + 40 * ((scores.length / userLen) ** 3),
+      }
+    }
+
+    const stdScore = sum / 4 / count + 0.5;
 
     return {
       color: colors(stdScore).name(),

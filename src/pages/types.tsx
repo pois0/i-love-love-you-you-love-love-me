@@ -1,3 +1,5 @@
+export type Optional<T> = T | null;
+
 export type DrawMode = "COUNT" | "SCORE";
 
 export type UserMap = Record<string, { user: UserInfo, lists: MediaEntryGroup[] }>
@@ -41,7 +43,7 @@ export type DataSet = {
 export type Anime = {
   id: number,
   title: string,
-  scores: number[],
+  scores: Optional<number>[],
 };
 
 export type User = string;
@@ -50,5 +52,5 @@ export type AnimeStatus = {
   userId: number,
   animeId: number,
   status: Status,
-  score?: number,
+  score: Optional<number>,
 }

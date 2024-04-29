@@ -10,7 +10,7 @@ import { AnimeSearchControl } from "./AnimeSearchControl";
 import { GraphDataController} from "./GraphDataController";
 import { GraphEventsController } from "./GraphEventsController";
 import { GraphSettingsController } from "./GraphSettingsController";
-import { Anime, DataSet, DrawMode, Status, UserMap, UserStat } from "./types";
+import { Anime, DataSet, DrawMode, UserMap, UserStat } from "./types";
 
 const anilistClient = new GraphQLClient(
   "https://graphql.anilist.co",
@@ -150,7 +150,7 @@ function aggregate(userMap: UserMap): DataSet {
       if (status !== "CURRENT" && status !== "COMPLETED") return [];
 
       return group.entries.map(({ media, score: rawScore }) => {
-        const score = rawScore == 0 ? 0 : zScore(userStat, rawScore * 10);
+        const score = rawScore == 0 ? null : zScore(userStat, rawScore * 10);
 
         const anime = animes.get(media.id);
         if (anime) {
