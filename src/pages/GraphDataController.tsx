@@ -11,28 +11,21 @@ export const GraphDataController: React.FC<{ dataset: DataSet, mode: DrawMode}> 
   useSigma();
   const loadGraph = useLoadGraph();
   const { assign } = useLayoutForceAtlas2({
-    iterations: 300,
+    iterations: 500,
   });
 
   useEffect(() => {
     const g = new Graph();
     const drawing = (mode == "COUNT" ? CountMode : ScoreMode)(dataset.users.length);
 
-    const usercolors = chroma
-      .scale([
-        chroma(326, 0.42, 0.62, "hsl"),
-        chroma(426, 0.42, 0.62, "hsl"),
-      ])
-      .mode("hsl")
-      .colors(dataset.users.length);
-    dataset.users.forEach(({ name, id }, i) => {
+    dataset.users.forEach(({ name, id }) => {
       g.addNode(userNodeId(id), {
         nodeType: "User",
         label: name,
         x: Math.random(),
         y: Math.random(),
         size: 25,
-        color: usercolors[i],
+        color: "#89709c",
       });
     });
     dataset.animes.forEach(({ id, title, scores }) => {
@@ -90,24 +83,28 @@ function ScoreMode(userLen: number): NodeDrawingConfig {
       sum += cutScores(score);
     }
 
-    if (count === 0) {
-      return {
-        color: "#768894",
-        radius: 5 + 40 * ((scores.length / userLen) ** 3),
-      }
-    }
+    const stdScore = count == 0 ? 0 : sum / 4 / count + 0.5;
+    const baseColor = scoreColors(stdScore);
 
-    const stdScore = sum / 4 / count + 0.5;
+    const reviewerGrad = chroma
+        .scale([
+          chroma.lch(lightness, 0, baseColor.lch()[2]),
+          baseColor
+        ])
+        .mode("lch");
 
     return {
-      color: colors(stdScore).name(),
+      color: reviewerGrad(count / scores.length ** (0.25)).name(),
       radius: 5 + 40 * ((scores.length / userLen) ** 3),
-    }
+    };
   };
 }
 
-const colors = chroma
+const lightness = 50;
+const chromaty = 130;
+const scoreColors = chroma
     .scale([
-      chroma("#dd3e54"),
-      chroma("#6be585"),
-    ]);
+      chroma.lch(lightness, chromaty, 40),
+      chroma.lch(lightness, chromaty, 135),
+    ])
+    .mode("lch");
