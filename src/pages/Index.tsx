@@ -1,4 +1,4 @@
-import { ControlsContainer, FullScreenControl, SearchControl, SigmaContainer, ZoomControl } from "@react-sigma/core";
+import { ControlsContainer, FullScreenControl, SigmaContainer, ZoomControl } from "@react-sigma/core";
 import clsx from "clsx";
 import { GraphQLClient } from "graphql-request";
 import React, { Suspense, useMemo, useState } from "react";
@@ -7,7 +7,7 @@ import useSWR from "swr";
 import { useURLParams } from "~/hooks/useURLParams";
 import { AnimeSearchControl } from "./AnimeSearchControl";
 
-import { GraphDataController} from "./GraphDataController";
+import { GraphDataController } from "./GraphDataController";
 import { GraphEventsController } from "./GraphEventsController";
 import { GraphSettingsController } from "./GraphSettingsController";
 import { Anime, DataSet, DrawMode, UserMap, UserStat } from "./types";
@@ -97,7 +97,7 @@ export const Fetcher: React.FC<
         </ControlsContainer>
       </SigmaContainer>
     </div>
-    );
+  );
 };
 
 export const Page: React.FC = () => {
@@ -142,7 +142,7 @@ export const Page: React.FC = () => {
 function aggregate(userMap: UserMap): DataSet {
   const users = Object.values(userMap).map((it) => it.user);
   const animes = new Map<number, Anime>();
-  const statuses = Object.values(userMap).flatMap(({ user, lists }) =>{
+  const statuses = Object.values(userMap).flatMap(({ user, lists }) => {
     return lists.flatMap((group) => {
       const status = group.status;
       const userStat = user.statistics.anime;

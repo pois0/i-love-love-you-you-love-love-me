@@ -1,6 +1,5 @@
 import pluginReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import pluginRewriteAll from "vite-plugin-rewrite-all";
 import pluginTSconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
@@ -8,7 +7,6 @@ export default defineConfig({
   plugins: [
     pluginReact(),
     pluginTSconfigPaths(),
-    pluginRewriteAll(),
   ],
   base: "/i-love-love-you-you-love-love-me/"
 });
